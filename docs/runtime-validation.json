@@ -1,0 +1,78 @@
+{
+  "started_at_utc": "2026-11-10T09:41:47.884941+00:00",
+  "provider": "Daytona temporary sandbox",
+  "aws_cloudformation_executed": false,
+  "named_cloudflare_token_tested": false,
+  "tunnel_provider": "Daytona authenticated preview proxy",
+  "images": {
+    "GHOST_IMAGE": "library/ghost@sha256:3af1575bb8917c6c0057beff85db92a4ac650f726956fd9de96932fea01c397c",
+    "MYSQL_IMAGE": "library/mysql@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902",
+    "CLOUDFLARED_IMAGE": "cloudflare/cloudflared@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba"
+  },
+  "changes_from_deployment": [
+    "Authenticated Daytona preview instead of Cloudflare connector",
+    "Read-only gateway blocks admin/setup and writes",
+    "No AWS IAM/SSM/cloud-init"
+  ],
+  "checks": {
+    "ghost_and_mysql_healthy": true,
+    "ghost_content_and_mysql_record_persisted_after_restart": true,
+    "only_gateway_loopback_port_no_ghost_or_mysql_host_ports": true,
+    "independent_authenticated_https_ghost_page": true,
+    "unauthenticated_preview_denied": true,
+    "admin_setup_and_encoded_admin_denied": true,
+    "writes_denied": true
+  },
+  "containers": [
+    {
+      "name": "/ender-runtime-smoke-db-1",
+      "image_id": "sha256:0f1a0ccadda3a1734d1db557e203ec58621d56fa248525016e85fe4f631311ec",
+      "state": "running",
+      "health": "healthy",
+      "published_ports": {}
+    },
+    {
+      "name": "/ender-runtime-smoke-gateway-1",
+      "image_id": "sha256:5ffe93e5bf39b1aff0d86aa74f2f77cee88689f8ff62b8dad72def55d1722455",
+      "state": "running",
+      "health": null,
+      "published_ports": {
+        "8080/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "8080"
+          }
+        ]
+      }
+    },
+    {
+      "name": "/ender-runtime-smoke-ghost-1",
+      "image_id": "sha256:5ffe93e5bf39b1aff0d86aa74f2f77cee88689f8ff62b8dad72def55d1722455",
+      "state": "running",
+      "health": "healthy",
+      "published_ports": {}
+    }
+  ],
+  "external_probe": {
+    "status": "passed",
+    "checks": {
+      "independent_authenticated_https_ghost_page": true,
+      "unauthenticated_preview_denied": true,
+      "admin_setup_and_encoded_admin_denied": true,
+      "writes_denied": true
+    },
+    "origin": "independent Windows host over HTTPS",
+    "token_recorded": false,
+    "page_title": "Ghost"
+  },
+  "status": "passed",
+  "containers_and_test_volumes_removed": true,
+  "finished_at_utc": "2026-11-10T09:44:34.061095+00:00",
+  "sandbox_deleted": true,
+  "runtime_source_sha256": {
+    "infrastructure/smoke/gateway.js": "b7513d81b00d54c253af88168ef2a351289e023c77635e378f04d6e3c81ba811",
+    "infrastructure/smoke/prepare.py": "9d3088b5adb0efd2d4cbc3614f8a8913e0657582de2e3fabd58dffc7e894d352",
+    "infrastructure/smoke/README.md": "8cf1e7745541cc37f935207bf9c05d4954ba1c7c0eb5f719cc1041779330f6a0",
+    "infrastructure/smoke/run.py": "66bc12fd25330c56269252f2f434caa3c00b2db1156794ce9f4e98fe38c250ad"
+  }
+}

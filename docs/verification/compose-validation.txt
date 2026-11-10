@@ -1,0 +1,1 @@
+Docker Compose v2.39.4: checksum verified; compose config --quiet passed. No containers or AWS resources started.

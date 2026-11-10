@@ -1,0 +1,13 @@
+{
+  "resolved_at": "2026-11-10T08:24:39.419006+00:00",
+  "source_tags": {
+    "GHOST_IMAGE": "library/ghost:6.75.0-alpine",
+    "MYSQL_IMAGE": "library/mysql:8.4",
+    "CLOUDFLARED_IMAGE": "cloudflare/cloudflared:latest"
+  },
+  "images": {
+    "GHOST_IMAGE": "library/ghost@sha256:3af1575bb8917c6c0057beff85db92a4ac650f726956fd9de96932fea01c397c",
+    "MYSQL_IMAGE": "library/mysql@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902",
+    "CLOUDFLARED_IMAGE": "cloudflare/cloudflared@sha256:4955524aeaa379e154023d5a027c250f7b35041a2e7e950cf13f144bc9b9c5ba"
+  }
+}

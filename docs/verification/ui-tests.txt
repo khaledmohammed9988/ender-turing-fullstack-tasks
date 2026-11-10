@@ -1,0 +1,8 @@
+
+Running 3 tests using 1 worker
+
+  ✓  1 rbac-tests/roles.spec.ts:4:3 › admin: navigation, direct URLs and user actions (2.3s)
+  ✓  2 rbac-tests/roles.spec.ts:4:3 › manager: navigation, direct URLs and user actions (408ms)
+  ✓  3 rbac-tests/roles.spec.ts:4:3 › member: navigation, direct URLs and user actions (312ms)
+
+  3 passed (3.4s)

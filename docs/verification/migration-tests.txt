@@ -1,0 +1,1 @@
+Migration passed: legacy admin/member backfill; downgrade mirror; re-upgrade. Manager becomes member after a lossy downgrade, as documented.

@@ -1,0 +1,20 @@
+.vscode/*
+!.vscode/extensions.json
+node_modules/
+backend/app/frontend/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Local review tools, generated evidence and operator secrets
+.tools/
+.evidence/
+.review/
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+.venv/
+infrastructure/.state/

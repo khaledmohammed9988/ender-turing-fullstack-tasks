@@ -1,0 +1,60 @@
+name: ender-ghost
+services:
+  db:
+    image: ${MYSQL_IMAGE:?Set pinned MYSQL_IMAGE}
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ghost
+      MYSQL_USER: ghost
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets: [db_password, db_root_password]
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: [CMD, mysqladmin, ping, -h, 127.0.0.1, --silent]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks: [database]
+    logging: &logging
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  ghost:
+    image: ${GHOST_IMAGE:?Set pinned GHOST_IMAGE}
+    restart: unless-stopped
+    environment: {NODE_ENV: production}
+    depends_on: {db: {condition: service_healthy}}
+    volumes: [ghost_content:/var/lib/ghost/content]
+    secrets:
+      - source: ghost_config
+        target: /var/lib/ghost/config.production.json
+    healthcheck:
+      test: [CMD, node, -e, "require('http').get('http://127.0.0.1:2368/',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks: [database, tunnel]
+    logging: *logging
+  cloudflared:
+    image: ${CLOUDFLARED_IMAGE:?Set pinned CLOUDFLARED_IMAGE}
+    restart: unless-stopped
+    command: [tunnel, --no-autoupdate, --metrics, '0.0.0.0:2000', run, --token-file, /run/secrets/tunnel_token]
+    depends_on: {ghost: {condition: service_healthy}}
+    secrets: [tunnel_token]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [tunnel]
+    logging: *logging
+volumes:
+  ghost_content:
+  mysql_data:
+networks:
+  database: {internal: true}
+  tunnel:
+secrets:
+  db_password: {file: .secrets/db_password}
+  db_root_password: {file: .secrets/db_root_password}
+  ghost_config: {file: .secrets/ghost_config.json}
+  tunnel_token: {file: .secrets/tunnel_token}

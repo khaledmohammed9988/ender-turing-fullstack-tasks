@@ -1,0 +1,100 @@
+name: Assessment verification
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: disposable-ci-password
+          POSTGRES_DB: app
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://app:disposable-ci-password@127.0.0.1:5432/app
+      SECRET_KEY: disposable-ci-only-secret-never-use-in-production
+      PROJECT_NAME: Ender assessment CI
+      FASTAPI_ENV: development
+      FIRST_SUPERUSER: owner@example.com
+      FIRST_SUPERUSER_PASSWORD: Disposable-CI-Owner-Password-123!
+      RBAC_DEMO_PASSWORD: Disposable-CI-Demo-Password-123!
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.14'
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
+        with:
+          version: latest-known
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.4.4
+      - name: Backend dependencies
+        run: uv sync --frozen --package app --group dev
+      - name: Migrations and backend tests
+        run: |
+          mkdir -p .evidence
+          cd backend
+          uv run alembic upgrade head
+          uv run pytest tests -q --junitxml=../.evidence/regression-junit.xml
+          uv run pytest rbac_tests -q --junitxml=../.evidence/backend-junit.xml
+          uv run python -m app.seed_rbac
+          uv run python -c 'import json; from app.main import app; open("../frontend/openapi.json","w").write(json.dumps(app.openapi()))'
+      - name: Frontend generation and build
+        working-directory: frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run generate-client
+          bun run build
+          bun x --bun playwright install --with-deps chromium
+      - name: Browser role and account-lifecycle checks
+        run: |
+          uv run --package app uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 > .evidence/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          for attempt in $(seq 1 30); do
+            curl --fail --silent http://127.0.0.1:8000/api/v1/utils/health-check/ >/dev/null && break
+            sleep 1
+          done
+          cd frontend
+          bun x --bun playwright test --config rbac.playwright.config.ts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: application-verification
+          path: .evidence/
+          include-hidden-files: true
+  infrastructure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r infrastructure/requirements.txt
+      - name: Unit and static checks only
+        run: |
+          mkdir -p .evidence
+          python -m pytest infrastructure/tests -q --junitxml=.evidence/infrastructure-junit.xml
+          python infrastructure/stack.py > /tmp/ender-stack.json
+          cfn-lint /tmp/ender-stack.json
+          shellcheck infrastructure/bootstrap.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: infrastructure-verification
+          path: .evidence/
+          include-hidden-files: true
