@@ -41,14 +41,11 @@ jobs:
           bun-version: 1.4.4
       - name: Backend dependencies
         run: uv sync --frozen --package app --group dev
-      - name: Migrations and backend tests
+      - name: Migrations and API schema
         run: |
           mkdir -p .evidence
           cd backend
           uv run alembic upgrade head
-          uv run pytest tests -q --junitxml=../.evidence/regression-junit.xml
-          uv run pytest rbac_tests -q --junitxml=../.evidence/backend-junit.xml
-          uv run python -m app.seed_rbac
           uv run python -c 'import json; from app.main import app; open("../frontend/openapi.json","w").write(json.dumps(app.openapi()))'
       - name: Frontend generation and build
         working-directory: frontend
@@ -57,6 +54,12 @@ jobs:
           bun run generate-client
           bun run build
           bun x --bun playwright install --with-deps chromium
+      - name: Backend tests against the built application
+        working-directory: backend
+        run: |
+          uv run pytest tests -q --junitxml=../.evidence/regression-junit.xml
+          uv run pytest rbac_tests -q --junitxml=../.evidence/backend-junit.xml
+          uv run python -m app.seed_rbac
       - name: Browser role and account-lifecycle checks
         run: |
           uv run --package app uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 > .evidence/server.log 2>&1 &
